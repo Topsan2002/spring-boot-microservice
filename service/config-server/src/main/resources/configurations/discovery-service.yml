@@ -1,6 +1,11 @@
 eureka:
   instance:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    lease-renewal-interval-in-seconds: 100
+#    leaseExpirationDurationInSeconds: 100
+#  server:
+#    eviction-interval-timer-in-ms: 100000
+#    enableSelfPreservation: false
   client:
     registerWithEureka: false
     fetchRegistry: false
