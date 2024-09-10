@@ -1,0 +1,119 @@
+version: "3"
+services:
+  config-server:
+    container_name: config-server
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.256'
+          memory: 512M
+        reservations:
+          cpus: '0.128'
+          memory: 128M
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      HOSTNAME: http://discovery-service:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-service:8761/eureka/
+    ports:
+      - 8888:8888
+    networks:
+      - microservices-net
+
+  discovery-service:
+      container_name: discovery-service
+      deploy:
+        replicas: 1
+        resources:
+          limits:
+            cpus: '0.256'
+            memory: 512M
+          reservations:
+            cpus: '0.128'
+            memory: 128M
+      build:
+        context: ./discovery
+        dockerfile: Dockerfile
+      restart: always
+      environment:
+        HOSTNAME: http://discovery-service:8761/eureka/
+        EUREKA_INSTANCE_HOSTNAME: discovery-service
+        SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+      ports:
+        - 8761:8761
+      networks:
+        - microservices-net
+
+  gateway-service:
+    container_name: gateway-service
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.256'
+          memory: 512M
+        reservations:
+          cpus: '0.128'
+          memory: 128M
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-service:8761/eureka/
+      ISSUER_URI: http://keycloak-ms:9098/realms/micro-services
+    ports:
+      - 8222:8222
+    networks:
+      - microservices-net
+    depends_on:
+      - discovery-service
+      - keycloak-ms
+  customer-service:
+    container_name: customer-service
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.256'
+          memory: 512M
+        reservations:
+          cpus: '0.128'
+          memory: 128M
+    build:
+      context: ./customer
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+      EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE: http://discovery-service:8761/eureka/
+    ports:
+      - 8090:8090
+    networks:
+      - microservices-net
+    depends_on:
+      - discovery-service
+  keycloak-ms:
+    container_name: keycloak-ms
+    image: quay.io/keycloak/keycloak:24.0.2
+    ports:
+      - 9098:8080
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    networks:
+      - microservices-net
+    command:
+      - "start-dev"
+
+networks:
+  microservices-net:
+    driver: bridge

@@ -1,0 +1,21 @@
+spring:
+  config:
+    import: ${SPRING_CONFIG_IMPORT:optional:configserver:http://localhost:8888}
+  application:
+    name: customer-service
+
+#spring:
+#  application:
+#    name: customer-service
+#  cloud:
+#    gateway:
+#      discovery:
+#        locator:
+#          enabled: true
+#      routes:
+#        - id: customer-service
+#          uri: lb://CUSTOMER-SERVICE
+#          predicates:
+#            - Path=/api/v1/customer/**
+#server:
+#  port: 8222
